@@ -28,10 +28,19 @@ There is **no `.env` to edit** — the bot asks for everything the first time.
    checklist — toggle the accounts you want to authorize (all are pre-selected).
 4. Not in the list? Choose **"Add another Telegram id manually"** and type the
    numeric id (get it from [@userinfobot](https://t.me/userinfobot)).
-5. Confirm **"Start the bot automatically at boot?"** → done.
+
+That's it. The wizard exits, and the bot is **launched in the background** — your
+terminal is free, and the boot task is registered automatically. You'll see:
+
+```
+✅ The bot is running in the background and will start automatically at boot.
+   Logs   : %ProgramData%\telegram-pc-bot\bot.log
+   Stop it: run this program with --uninstall
+```
 
 The config is saved to `%ProgramData%\telegram-pc-bot\config.json`, so the
-auto-started task and your user account read the same file.
+auto-started task and your user account read the same file. If you want to
+reconfigure, run the installer again and pass `--setup`.
 
 ## Commands
 

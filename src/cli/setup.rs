@@ -2,7 +2,8 @@
 //!
 //! Guides the user through entering a bot token, auto-detects everyone who has
 //! messaged the bot, lets the user pick which of them are authorized (or type
-//! ids manually), persists the configuration and registers the boot task.
+//! ids manually) and persists the configuration. Launching the background task
+//! is handled by `main` once the wizard returns.
 
 use std::collections::BTreeMap;
 
@@ -23,8 +24,8 @@ struct DetectedUser {
 /// Run the full setup wizard.
 ///
 /// # Errors
-/// Returns a typed error when input, token validation, config persistence or
-/// autostart registration fails.
+/// Returns a typed error when input, token validation or config persistence
+/// fails.
 pub async fn run() -> AppResult<()> {
     let theme = ColorfulTheme::default();
     print_banner();
