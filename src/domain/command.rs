@@ -62,7 +62,8 @@ pub fn parse_callback(data: &str) -> Option<CallbackRequest> {
         return Some(CallbackRequest::Cancel);
     }
     let action = PowerAction::from_callback_id(action)?;
-    let delay = delay.parse::<u32>().ok()?;
+    // Clamp here too: never trust a payload to carry an unbounded delay.
+    let delay = delay.parse::<u32>().ok()?.min(MAX_DELAY_SECONDS);
     Some(CallbackRequest::Confirm { action, delay })
 }
 
@@ -127,6 +128,17 @@ mod tests {
         assert_eq!(
             parse_callback(&cancel_payload()),
             Some(CallbackRequest::Cancel)
+        );
+    }
+
+    #[test]
+    fn callback_delay_is_clamped() {
+        assert_eq!(
+            parse_callback("act:reboot:4294967295"),
+            Some(CallbackRequest::Confirm {
+                action: PowerAction::Reboot,
+                delay: MAX_DELAY_SECONDS,
+            })
         );
     }
 

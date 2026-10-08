@@ -69,8 +69,23 @@ Destructive actions (`reboot`, `shutdown`, `suspend`, `hibernate`) show a
 - **Confirm / Cancel inline keyboard** before any destructive action.
 - **Delay clamping** (0 – 86 400 s, default 10 s) so a typo can't schedule a
   reboot a week out.
-- **No panics**: bad config or an invalid token produces a typed error.
+- **No panics**: bad config or an invalid token produces a typed error with a
+  readable message and a non-zero exit code.
+- **Atomic config writes** — a crash mid-save can never corrupt `config.json`.
+- **Hardened token file** — the config ACL is restricted to `SYSTEM` and
+  `Administrators` on Windows.
+- **Rotating logs** — the daemon writes a new `bot.log` daily instead of growing
+  without bound.
 - Runs silently (no console window flash).
+
+## Known limitations
+
+- `/lock` runs the standard `LockWorkStation` call. Because the boot task runs as
+  `SYSTEM` (session 0), `/lock` may not lock your interactive desktop; use
+  `--foreground` or run the bot in your own session if locking is important.
+  `/reboot`, `/shutdown`, `/suspend`, `/hibernate` are unaffected.
+- Re-running setup automatically stops a running instance first, so the wizard's
+  `get_updates` call never collides with the live poller.
 
 ## Building from source
 
@@ -95,6 +110,8 @@ target\release\telegram-pc-bot.exe
 | `--foreground` | Run attached to this terminal (for debugging) |
 | `--daemon` | Detached mode used by the boot task (logs to `bot.log`) |
 | `--uninstall` | Stop and remove the background task + stored configuration |
+| `-h`, `--help` | Show usage |
+| `-V`, `--version` | Show the version |
 
 Once launched, the bot keeps running **detached from your terminal** and
 starts automatically at every boot. Its logs live next to the config in

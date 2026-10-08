@@ -12,6 +12,7 @@ mod domain;
 mod error;
 mod infra;
 
+use std::process::ExitCode;
 use std::sync::Arc;
 
 use teloxide::dptree;
@@ -26,10 +27,34 @@ use crate::error::AppResult;
 use crate::infra::autostart;
 
 #[tokio::main]
-async fn main() -> AppResult<()> {
-    let mode = Mode::parse(std::env::args().skip(1));
+async fn main() -> ExitCode {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+
+    if args.iter().any(|arg| arg == "--help" || arg == "-h") {
+        print_help();
+        return ExitCode::SUCCESS;
+    }
+    if args.iter().any(|arg| arg == "--version" || arg == "-V") {
+        println!("telegram-pc-bot {}", env!("CARGO_PKG_VERSION"));
+        return ExitCode::SUCCESS;
+    }
+
+    let mode = Mode::parse(&args);
     init_tracing(mode);
 
+    match run(mode).await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            // `Display` yields the friendly `#[error(...)]` message instead of
+            // the `Debug` representation the default `Result` main would print.
+            eprintln!("error: {error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// Dispatch the selected [`Mode`].
+async fn run(mode: Mode) -> AppResult<()> {
     match mode {
         Mode::Uninstall => uninstall().await,
         Mode::Setup => {
@@ -50,6 +75,24 @@ async fn main() -> AppResult<()> {
             launch_background().await
         }
     }
+}
+
+/// Print the command-line help text.
+fn print_help() {
+    println!(
+        "telegram-pc-bot {}\n\n\
+        Usage: telegram-pc-bot [OPTION]\n\n\
+        With no option, runs setup on first launch and then keeps the bot\n\
+        running as a detached background task that starts at every boot.\n\n\
+        Options:\n\
+          --setup       force the interactive setup wizard\n\
+          --foreground  run attached to this terminal (debugging)\n\
+          --daemon      run detached (used by the boot task)\n\
+          --uninstall   stop the task and delete the stored config\n\
+          -h, --help    show this help\n\
+          -V, --version show the version",
+        env!("CARGO_PKG_VERSION")
+    );
 }
 
 /// Ensure the boot task is registered and start it in the background.
@@ -117,7 +160,7 @@ fn init_tracing(mode: Mode) {
     if matches!(mode, Mode::Daemon) {
         let dir = Config::dir();
         let _ = std::fs::create_dir_all(&dir);
-        let appender = tracing_appender::rolling::never(&dir, "bot.log");
+        let appender = tracing_appender::rolling::daily(&dir, "bot.log");
         tracing_subscriber::fmt()
             .with_env_filter(filter)
             .with_writer(appender)

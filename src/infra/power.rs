@@ -22,14 +22,7 @@ pub async fn reboot(delay: u32) -> ActionResult {
     let delay = delay.to_string();
     run(
         "shutdown",
-        &[
-            "/r",
-            "/t",
-            delay.as_str(),
-            "/f",
-            "/c",
-            "Reboot requested via Telegram",
-        ],
+        &["/r", "/t", delay.as_str(), "/f", "/c", "System"],
     )
     .await
 }

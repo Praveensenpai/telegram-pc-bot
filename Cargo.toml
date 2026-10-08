@@ -1,6 +1,6 @@
 [package]
 name = "telegram-pc-bot"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Telegram bot to control a Windows PC (reboot, shutdown, lock, suspend)"
 license = "MIT"

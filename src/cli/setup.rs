@@ -36,6 +36,10 @@ pub async fn run() -> AppResult<()> {
     let username = validate_token(&bot).await?;
     println!("\n✅ Token valid — connected to @{username}.\n");
 
+    // Stop any running instance first: two pollers sharing one token make
+    // Telegram reject `get_updates` with "terminated by other getUpdates".
+    let _ = crate::infra::autostart::stop().await;
+
     let detected = detect_users(&bot).await?;
     let allowed_ids = select_users(&theme, &detected)?;
 
@@ -83,27 +87,33 @@ async fn validate_token(bot: &Bot) -> AppResult<String> {
 async fn detect_users(bot: &Bot) -> AppResult<Vec<DetectedUser>> {
     println!("🔍 Looking for people who have messaged the bot…");
 
-    let updates: Vec<Update> = bot.get_updates().await?;
-    let mut users: BTreeMap<u64, String> = BTreeMap::new();
+    loop {
+        let updates: Vec<Update> = bot.get_updates().await?;
+        let mut users: BTreeMap<u64, String> = BTreeMap::new();
 
-    for update in &updates {
-        if let Some(user) = update.from() {
-            users.entry(user.id.0).or_insert_with(|| format_user(user));
+        for update in &updates {
+            if let Some(user) = update.from() {
+                users.entry(user.id.0).or_insert_with(|| format_user(user));
+            }
+        }
+
+        if !users.is_empty() {
+            println!("   Found {} sender(s).", users.len());
+            return Ok(users
+                .into_iter()
+                .map(|(id, label)| DetectedUser { id, label })
+                .collect());
+        }
+
+        println!("   No recent messages found yet.");
+        let retry = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Send /start to the bot from Telegram, then choose Retry")
+            .default(true)
+            .interact()?;
+        if !retry {
+            return Ok(Vec::new());
         }
     }
-
-    if users.is_empty() {
-        println!(
-            "   No recent messages found. Ask the person to send /start to the bot,\n   then re-run setup."
-        );
-    } else {
-        println!("   Found {} sender(s).", users.len());
-    }
-
-    Ok(users
-        .into_iter()
-        .map(|(id, label)| DetectedUser { id, label })
-        .collect())
 }
 
 /// Build a readable label for a detected user.

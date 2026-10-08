@@ -9,7 +9,9 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// PowerShell script collecting a short host status report.
 const STATUS_SCRIPT: &str = r#"
 $ErrorActionPreference = 'SilentlyContinue'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $os = Get-CimInstance Win32_OperatingSystem
+$cs = Get-CimInstance Win32_ComputerSystem
 $uptime = (Get-Date) - $os.LastBootUpTime
 $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
 $totalMb = [math]::Round($os.TotalVisibleMemorySize / 1KB, 1)
@@ -19,7 +21,7 @@ $usedPct = if ($totalMb -gt 0) { [math]::Round(($usedMb / $totalMb) * 100, 0) } 
 $battery = Get-CimInstance Win32_Battery | Select-Object -First 1
 $lines = @(
   "Host     : $env:COMPUTERNAME"
-  "User     : $env:USERNAME"
+  "User     : $(if ($cs.UserName) { $cs.UserName } else { $env:USERNAME })"
   "OS       : $($os.Caption) ($($os.Version))"
   "Uptime   : $($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m"
   "CPU load : $cpu%"

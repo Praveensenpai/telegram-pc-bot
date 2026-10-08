@@ -90,8 +90,47 @@ impl Config {
         }
         let json = serde_json::to_string_pretty(self)
             .map_err(|error| AppError::Config(format!("cannot serialize config: {error}")))?;
-        fs::write(&path, json)
-            .map_err(|error| AppError::Config(format!("cannot write {}: {error}", path.display())))
+        // Write to a sibling temp file and rename, so a crash mid-write can
+        // never leave a truncated config behind.
+        let tmp = path.with_extension("json.tmp");
+        fs::write(&tmp, json).map_err(|error| {
+            AppError::Config(format!("cannot write {}: {error}", tmp.display()))
+        })?;
+        fs::rename(&tmp, &path).map_err(|error| {
+            AppError::Config(format!("cannot replace {}: {error}", path.display()))
+        })?;
+        Self::harden_permissions(&path);
+        Ok(())
+    }
+
+    /// Best-effort restriction of the config file to SYSTEM and Administrators.
+    ///
+    /// The file stores the bot token in plain text; on Windows we drop inherited
+    /// permissions and grant access only to those two principals.
+    fn harden_permissions(path: &std::path::Path) {
+        #[cfg(windows)]
+        {
+            use std::process::{Command, Stdio};
+            let Some(path_str) = path.to_str() else {
+                return;
+            };
+            let _ = Command::new("icacls")
+                .args([
+                    path_str,
+                    "/inheritance:r",
+                    "/grant:r",
+                    "*S-1-5-18:(F)",     // SYSTEM
+                    "*S-1-5-32-544:(F)", // Administrators
+                ])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = path;
+        }
     }
 
     /// Remove the persisted configuration file if it exists.
