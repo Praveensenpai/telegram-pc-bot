@@ -53,4 +53,3 @@ jobs:
           files: |
             telegram-pc-bot-windows-x86_64.exe
             checksums.txt
-          generate_release_notes: true
