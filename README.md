@@ -117,9 +117,8 @@ cargo test --all-targets
 ## Releases
 
 Pushing a `v*` tag triggers [`.github/workflows/release.yml`](.github/workflows/release.yml),
-which builds the **Windows x86_64** and **Linux x86_64** binaries, attaches them
-to a GitHub release, and publishes `checksums.txt`. The one-line installer always
-pulls the latest Windows asset.
+which builds the **Windows x86_64** binary, attaches it to a GitHub release, and
+publishes `checksums.txt`. The one-line installer always pulls the latest asset.
 
 ## Security
 

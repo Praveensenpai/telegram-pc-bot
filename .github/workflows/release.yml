@@ -11,18 +11,8 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ matrix.target }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            asset: telegram-pc-bot-windows-x86_64.exe
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            asset: telegram-pc-bot-linux-x86_64
+    name: Build Windows x86_64
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -31,56 +21,36 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-pc-windows-msvc
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}
+          key: x86_64-pc-windows-msvc
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target x86_64-pc-windows-msvc
 
-      - name: Stage binary (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Stage binary
         shell: pwsh
         run: |
-          Copy-Item "target/${{ matrix.target }}/release/telegram-pc-bot.exe" "${{ matrix.asset }}"
+          Copy-Item "target/x86_64-pc-windows-msvc/release/telegram-pc-bot.exe" "telegram-pc-bot-windows-x86_64.exe"
 
-      - name: Stage binary (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
+      - name: Compute checksum
+        shell: pwsh
         run: |
-          cp "target/${{ matrix.target }}/release/telegram-pc-bot" "${{ matrix.asset }}"
+          (Get-FileHash "telegram-pc-bot-windows-x86_64.exe" -Algorithm SHA256).Hash.ToLower() + "  telegram-pc-bot-windows-x86_64.exe" | Out-File -Encoding ascii checksums.txt
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset }}
-          path: ${{ matrix.asset }}
-
-  publish:
-    name: Publish release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-
-      - name: Compute checksums
-        shell: bash
-        run: |
-          cd dist
-          sha256sum * > checksums.txt
+          name: telegram-pc-bot-windows-x86_64.exe
+          path: telegram-pc-bot-windows-x86_64.exe
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            telegram-pc-bot-windows-x86_64.exe
+            checksums.txt
           generate_release_notes: true
