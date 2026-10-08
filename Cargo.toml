@@ -1,0 +1,26 @@
+[package]
+name = "telegram-pc-bot"
+version = "0.1.0"
+edition = "2021"
+description = "Telegram bot to control a Windows PC (reboot, shutdown, lock, suspend)"
+license = "MIT"
+
+[[bin]]
+name = "telegram-pc-bot"
+path = "src/main.rs"
+
+[dependencies]
+teloxide = { version = "0.17", features = ["macros"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dialoguer = "0.12"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
