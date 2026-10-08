@@ -39,14 +39,7 @@ pub async fn power_off(delay: u32) -> ActionResult {
     let delay = delay.to_string();
     run(
         "shutdown",
-        &[
-            "/s",
-            "/t",
-            delay.as_str(),
-            "/f",
-            "/c",
-            "Shutdown requested via Telegram",
-        ],
+        &["/s", "/t", delay.as_str(), "/f", "/c", "System"],
     )
     .await
 }

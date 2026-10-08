@@ -31,9 +31,9 @@ Invoke-WebRequest -Uri $url -OutFile $target -UseBasicParsing
 
 Write-Host "[OK] Installed to $target"
 
-# Hand control to the interactive setup wizard, which persists the config and
-# registers the boot task.
+# Hand control to the interactive setup wizard, which persists the config,
+# then launches the bot as a detached background task.
 & $target --setup
 
 Write-Host ''
-Write-Host '[OK] Done. The bot will start automatically at boot.' -ForegroundColor Green
+Write-Host '[OK] Done. The bot is running in the background and will start automatically at boot.' -ForegroundColor Green

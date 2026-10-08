@@ -1,25 +1,25 @@
 use crate::error::{AppError, AppResult};
 
 /// Name of the Windows scheduled task that starts the bot at boot.
-pub const TASK_NAME: &str = "TelegramPcBot";
+#[cfg(windows)]
+const TASK_NAME: &str = "TelegramPcBot";
 
 /// Register the running executable as a boot-time task.
 ///
 /// On Windows this creates an `ONSTART` scheduled task running as `SYSTEM`
-/// with the highest privileges (required by `shutdown`) and starts it
-/// immediately. On other platforms this returns a typed error so the wizard
-/// can report that autostart is unavailable.
+/// with the highest privileges (required by `shutdown`). The task launches the
+/// binary with `--daemon`, so it runs detached from any console. The task is
+/// not started here; call [`start`] for that.
 ///
 /// # Errors
 /// Returns [`AppError::Autostart`] when the executable cannot be located or
-/// the task cannot be registered.
+/// the task cannot be registered, and on non-Windows platforms.
 pub async fn install() -> AppResult<()> {
     #[cfg(windows)]
     {
         let exe = std::env::current_exe()
             .map_err(|error| AppError::Autostart(format!("cannot locate executable: {error}")))?;
-        let exe = exe.to_string_lossy().to_string();
-        let program = format!("\"{exe}\"");
+        let program = format!("\"{}\" --daemon", exe.to_string_lossy());
 
         run_schtasks(&[
             "/Create",
@@ -35,10 +35,7 @@ pub async fn install() -> AppResult<()> {
             "HIGHEST",
             "/F",
         ])
-        .await?;
-        // Start it now so the user does not have to reboot.
-        run_schtasks(&["/Run", "/TN", TASK_NAME]).await?;
-        Ok(())
+        .await
     }
 
     #[cfg(not(windows))]
@@ -49,13 +46,50 @@ pub async fn install() -> AppResult<()> {
     }
 }
 
-/// Remove the boot-time task if present.
+/// Start the registered task in the background.
+///
+/// # Errors
+/// Returns [`AppError::Autostart`] when the task cannot be started.
+pub async fn start() -> AppResult<()> {
+    #[cfg(windows)]
+    {
+        run_schtasks(&["/Run", "/TN", TASK_NAME]).await
+    }
+
+    #[cfg(not(windows))]
+    {
+        Err(AppError::Autostart(
+            "autostart is only supported on Windows".to_owned(),
+        ))
+    }
+}
+
+/// Stop the running task instance, if any.
+///
+/// # Errors
+/// Returns [`AppError::Autostart`] when the task cannot be stopped.
+pub async fn stop() -> AppResult<()> {
+    #[cfg(windows)]
+    {
+        run_schtasks(&["/End", "/TN", TASK_NAME]).await
+    }
+
+    #[cfg(not(windows))]
+    {
+        Err(AppError::Autostart(
+            "autostart is only supported on Windows".to_owned(),
+        ))
+    }
+}
+
+/// Remove the boot-time task if present, stopping it first.
 ///
 /// # Errors
 /// Returns [`AppError::Autostart`] when the task cannot be removed.
 pub async fn uninstall() -> AppResult<()> {
     #[cfg(windows)]
     {
+        let _ = run_schtasks(&["/End", "/TN", TASK_NAME]).await;
         run_schtasks(&["/Delete", "/TN", TASK_NAME, "/F"]).await
     }
 

@@ -31,7 +31,7 @@ impl Config {
     /// interactive user read the same file. Falls back to the user config dir
     /// on other platforms (useful for development).
     #[must_use]
-    pub fn path() -> PathBuf {
+    pub fn dir() -> PathBuf {
         let base = if cfg!(windows) {
             env::var_os("PROGRAMDATA").map_or_else(env::temp_dir, PathBuf::from)
         } else {
@@ -43,7 +43,13 @@ impl Config {
                 PathBuf::from,
             )
         };
-        base.join(APP_DIR).join(CONFIG_FILE)
+        base.join(APP_DIR)
+    }
+
+    /// Absolute path of the persisted configuration file.
+    #[must_use]
+    pub fn path() -> PathBuf {
+        Self::dir().join(CONFIG_FILE)
     }
 
     /// Whether a configuration file already exists on disk.

@@ -4,10 +4,14 @@ pub mod setup;
 /// A parsed command-line invocation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
-    /// Run the bot (using an existing config, or setup first if none exists).
+    /// Default: set up if needed, then ensure a detached instance runs.
     Run,
-    /// Force the interactive setup wizard, then run.
+    /// Force the interactive setup wizard.
     Setup,
+    /// Run as a detached daemon (used by the boot task).
+    Daemon,
+    /// Run attached to the current terminal (for debugging).
+    Foreground,
     /// Remove the boot task and the stored configuration.
     Uninstall,
 }
@@ -23,6 +27,8 @@ impl Mode {
         for arg in args {
             match arg.as_ref() {
                 "--setup" | "setup" => return Self::Setup,
+                "--daemon" | "daemon" => return Self::Daemon,
+                "--foreground" | "foreground" => return Self::Foreground,
                 "--uninstall" | "uninstall" => return Self::Uninstall,
                 _ => {}
             }
@@ -43,6 +49,16 @@ mod tests {
     #[test]
     fn detects_setup() {
         assert_eq!(Mode::parse(["bot", "--setup"]), Mode::Setup);
+    }
+
+    #[test]
+    fn detects_daemon() {
+        assert_eq!(Mode::parse(["bot", "--daemon"]), Mode::Daemon);
+    }
+
+    #[test]
+    fn detects_foreground() {
+        assert_eq!(Mode::parse(["bot", "--foreground"]), Mode::Foreground);
     }
 
     #[test]

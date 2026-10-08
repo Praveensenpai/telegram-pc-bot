@@ -12,7 +12,6 @@ use teloxide::types::Update;
 
 use crate::config::{parse_user_ids, Config};
 use crate::error::{AppError, AppResult};
-use crate::infra::autostart;
 
 /// A Telegram user detected from recent bot updates.
 #[derive(Debug, Clone)]
@@ -46,9 +45,6 @@ pub async fn run() -> AppResult<()> {
     config.save()?;
     println!("\n💾 Configuration saved to {}", Config::path().display());
 
-    install_autostart(&theme).await?;
-
-    println!("\n🎉 Setup complete. The bot is now running and will start automatically at boot.\n");
     Ok(())
 }
 
@@ -162,36 +158,4 @@ fn prompt_manual_ids(theme: &ColorfulTheme) -> AppResult<Vec<u64>> {
         .with_prompt("Enter id(s), separated by commas")
         .interact_text()?;
     parse_user_ids(&raw)
-}
-
-/// Offer to register the boot-time task and do so if accepted.
-async fn install_autostart(theme: &ColorfulTheme) -> AppResult<()> {
-    if autostart::is_installed().await {
-        println!(
-            "🔁 Boot task '{}' is already registered.",
-            autostart::TASK_NAME
-        );
-        return Ok(());
-    }
-
-    let accepted = Confirm::with_theme(theme)
-        .with_prompt("Start the bot automatically at boot?")
-        .default(true)
-        .interact()?;
-    if !accepted {
-        println!("ℹ️  Skipped autostart. Run the binary again to start it manually.");
-        return Ok(());
-    }
-
-    match autostart::install().await {
-        Ok(()) => {
-            println!("🔁 Registered boot task '{}'.", autostart::TASK_NAME);
-            Ok(())
-        }
-        Err(error) => {
-            println!("⚠️  Could not register autostart: {error}");
-            println!("   On Windows, run this setup from an elevated (Administrator) terminal.");
-            Ok(())
-        }
-    }
 }

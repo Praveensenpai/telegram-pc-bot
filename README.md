@@ -54,7 +54,7 @@ Destructive actions (`reboot`, `shutdown`, `suspend`, `hibernate`) show a
 - **Interactive setup wizard** — no config files to hand-edit.
 - **Auto-detects message senders** — pick authorized accounts from a checklist,
   or enter ids manually.
-- **Runs as a daemon** and **auto-starts at boot** (Windows `ONSTART` task as
+- **Runs detached in the background** and **auto-starts at boot** (Windows `ONSTART` task as
   `SYSTEM`, highest privileges).
 - Numeric **user-ID allowlist** — every update from a stranger is dropped.
 - **Confirm / Cancel inline keyboard** before any destructive action.
@@ -81,9 +81,15 @@ target\release\telegram-pc-bot.exe
 
 | Flag | Description |
 | :--- | :--- |
-| *(none)* | Run the bot; run setup first if no config exists |
-| `--setup` | Force the interactive setup wizard, then run |
-| `--uninstall` | Remove the boot task and stored configuration |
+| *(none)* | Set up if needed, then launch the bot **in the background** |
+| `--setup` | Force the interactive setup wizard, then launch in the background |
+| `--foreground` | Run attached to this terminal (for debugging) |
+| `--daemon` | Detached mode used by the boot task (logs to `bot.log`) |
+| `--uninstall` | Stop and remove the background task + stored configuration |
+
+Once launched, the bot keeps running **detached from your terminal** and
+starts automatically at every boot. Its logs live next to the config in
+`bot.log`.
 
 ## Project layout
 
