@@ -78,12 +78,12 @@ Destructive actions (`reboot`, `shutdown`, `suspend`, `hibernate`) show a
   without bound.
 - Runs silently (no console window flash).
 
-## Known limitations
+## Notes
 
-- `/lock` runs the standard `LockWorkStation` call. Because the boot task runs as
-  `SYSTEM` (session 0), `/lock` may not lock your interactive desktop; use
-  `--foreground` or run the bot in your own session if locking is important.
-  `/reboot`, `/shutdown`, `/suspend`, `/hibernate` are unaffected.
+- `/lock` is **session-aware**: even though the boot task runs as `SYSTEM`
+  (session 0), the bot resolves the active console session and locks *that*
+  desktop via `CreateProcessAsUserW`. If no user is logged in it reports so
+  instead of silently doing nothing.
 - Re-running setup automatically stops a running instance first, so the wizard's
   `get_updates` call never collides with the live poller.
 
@@ -132,6 +132,7 @@ src/
 │   └── command.rs       Delay/callback parsing, HTML escaping
 ├── infra/               OS interaction
 │   ├── power.rs         shutdown / rundll32 wrappers
+│   ├── session_lock.rs  Session-aware lock via CreateProcessAsUserW (Windows)
 │   ├── status.rs        PowerShell status query
 │   └── autostart.rs     Windows scheduled-task install/uninstall
 └── api/

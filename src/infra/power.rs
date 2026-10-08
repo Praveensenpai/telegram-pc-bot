@@ -42,7 +42,33 @@ pub async fn abort_shutdown() -> ActionResult {
     run("shutdown", &["/a"]).await
 }
 
-/// Lock the current session.
+/// Lock the session.
+///
+/// The boot task runs as `SYSTEM` in session 0, where the plain
+/// `LockWorkStation` call would lock the non-interactive services session. On
+/// Windows we therefore lock the *active console session* and fall back to the
+/// simple call only if that fails.
+#[cfg(windows)]
+pub async fn lock_workstation() -> ActionResult {
+    match tokio::task::spawn_blocking(super::session_lock::lock).await {
+        Ok(Ok(())) => ActionResult {
+            ok: true,
+            output: "Locked the active session.".to_owned(),
+        },
+        Ok(Err(reason)) => {
+            let fallback = run("rundll32.exe", &["user32.dll,LockWorkStation"]).await;
+            if fallback.ok {
+                fallback
+            } else {
+                ActionResult::failure(format!("{reason}; fallback: {}", fallback.output))
+            }
+        }
+        Err(error) => ActionResult::failure(format!("lock task panicked: {error}")),
+    }
+}
+
+/// Lock the current session (non-Windows fallback).
+#[cfg(not(windows))]
 pub async fn lock_workstation() -> ActionResult {
     run("rundll32.exe", &["user32.dll,LockWorkStation"]).await
 }
